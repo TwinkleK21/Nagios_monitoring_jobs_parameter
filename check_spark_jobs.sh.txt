@@ -1,0 +1,60 @@
+#/usr/bin/bash
+# This script is a Nagios plugin, which tells the number of running spark jobs on a MapR cluster
+# Contact: twinkle.kariya@mojonetworks.com
+
+
+print_help()
+{
+  echo "Checks MapR running spark jobs"
+  echo ""
+  echo "-H ADDRESS"
+  echo "   Name or IP address of MapR host"
+  echo "-U USERNAME"
+  echo "   Name of SSH user"
+  echo "-P PASSWORD"
+  echo "   Password for MapR host"
+  echo "-J JOBS"
+  echo "   Number of expected jobs to be running"
+  echo "-h"
+  echo "   Print this help screen"
+}
+
+check_arguments()
+{
+        # check if any of the passed command line argument is blank
+        if [[ ( -z $HOST ) || ( -z $USER ) || ( -z $PASSWD ) || ( -z $JOBS ) ]]; then
+                print_help
+                exit 1
+        fi
+}
+
+
+while getopts 'H:U:P:J:h' OPT
+do
+        case ${OPT} in
+                H) HOST=${OPTARG}
+                   ;;
+                U) USER=${OPTARG}
+                   ;;
+                P) PASSWD=${OPTARG}
+                   ;;
+                J) JOBS=${OPTARG}
+                   ;;
+                h) print_help
+                   ;;
+                \?) print_help
+                   ;;
+        esac
+done
+shift $((OPTIND-1))
+
+
+check_arguments
+status=`/usr/local/nagios/libexec/get_spark_jobs.py -h $HOST -u $USER -p $PASSWD -j $JOBS`
+
+
+exit_code=`echo "$status" | cut -d "|" -f 1`
+message=`echo "$status" | cut -d "|" -f 2`
+
+echo $message
+exit $exit_code
